@@ -1,27 +1,44 @@
 # Node.js P1-Reader
+
 Node.js package for reading and parsing data from the P1 port of a Dutch Smart Meter.
 Data is parsed according to the official DSMR4.0 specification by Netbeheer Nederland, which is currently used by most popular Kaifa and Landis+Gyr Smart Meters.
 
-How to use
-==========
+## How to use
 
 The serial connection is automatically opened on initiating the P1-Reader. Use the `reading` event to start receiving data, which should come in every 10 seconds.
 
-```
-var P1Reader = require('p1-reader');
-var p1Reader = new P1Reader();
+```javascript
+const P1Reader = require('p1-reader');
+const p1Reader = new P1Reader({
+    port: '/dev/tty-usbserial1',
+    baudRate: 115200,
+    parity: "even",
+    dataBits: 7,
+    stopBits: 1
+});
 
-p1Reader.on('reading', function(data) {
+p1Reader.on('reading', data => {
     console.log('Currently consuming: ' + data.electricity.received.actual.reading + data.electricity.received.actual.unit);
 });
 
-p1Reader.on('error', function(err) {
+p1Reader.on('error', err => {
     console.log('Error while reading: ' + err);
 });
 ```
 
-Events
-======
+## Force specific serial port
+
+If for some reason the automatic serial port discovery does not work it is possible to force a certain port with a specific configuration.
+
+Provide a `serialPort` object as option parameter to set a specific serial port configuration. The object should contain all of the following field:
+
+* `port` : Portname of the serial port on which the Smart Meter is connected (e.g. '/dev/ttyUSB0')
+* `baudRate` : Baud rate of the serial port (e.g. '9600' or '115200')
+* `parity` : Parity of the serial port (e.g. 'none' or 'even')
+* `dataBits` : Number of data bits used for the serial port (e.g. '7' or '8')
+* `stopBits` : Number of stop bits used for the serial port (e.g. '1')
+
+## Events
 
 The module emits the following events:
 
@@ -31,12 +48,11 @@ The module emits the following events:
 * `error` : When the serial connection emits an error
 * `close` : When the serial connection closes for some reason
 
-Reading structure
-=================
+## Reading structure
 
 The `reading` event returns the following data structure:
 
-```
+```json
 {
     "meterType": "ISk5\2MT382-1000",
     "version": "42",
@@ -168,8 +184,7 @@ The `reading` event returns the following data structure:
 }
 ```
 
-Emulator mode
-==========
+## Emulator mode
 
 Since your development machine is usually not connected to the serial port directly the emulator mode can be enabled.
 When enabled the module will not connect to a serial port but instead will use a mocked version that will emit messages according to the DSMR 4.0 specification.
@@ -178,8 +193,8 @@ The emulator will emit a reading event every 10 seconds just like an actual Smar
 
 Provide the `emulator` option parameter to run the module in emulator mode:
 
-```
-var p1Reader = new P1Reader({emulator: true});
+```javascript
+const p1Reader = new P1Reader({emulator: true});
 ```
 
 The emulator defaults can be overriden by passing an `emulatorOverrides` object, which can contain the following parameters:
@@ -191,78 +206,83 @@ The emulator defaults can be overriden by passing an `emulatorOverrides` object,
 * `interval` : Interval (in seconds) in which readings are emitted (default: 10)
 * `intervalGas` Interval (in seconds) in which the gas reading is incremented (default: 3600)
 
-Debug mode
-==========
+## Debug mode
 
 In debug mode all raw and parsed packages are written to 2 separate log files (debug-data-raw.log and debug-data-parsed.log) and stored in the directory from which the module was triggered.
 
 Provide the `debug` option parameter to run the module in debug mode:
 
+```javascript
+const p1Reader = new P1Reader({debug: true});
 ```
-var p1Reader = new P1Reader({debug: true});
-```
 
-Force specific serial port
-==========================
-
-If for some reason the automatic serial port discovery does not work it is possible to force a certain port with a specific configuration.
-
-Provide a `serialPort` object as option parameter to set a specific serial port configuration. The object should contain all of the following field:
-* `port` : Portname of the serial port on which the Smart Meter is connected (e.g. '/dev/tty-usbserial1')
-* `baudRate` : Baud rate of the serial port (e.g. '9600' or '115200')
-* `parity` : Parity of the serial port (e.g. 'none' or 'even')
-* `dataBits` : Number of data bits used for the serial port (e.g. '7' or '8')
-* `stopBits` : Number of stop bits used for the serial port (e.g. '1')
-
-Official DSMR documentation
-===========================
+## Official DSMR documentation
 
 The official DSMR Smart Meter P1 interface documentation from Netbeheer Nederland can be found here:
-http://www.netbeheernederland.nl/publicaties/publicatie/?documentregistrationid=1745033
+<https://www.netbeheernederland.nl/dossiers/slimme-meter-15/documenten>
 This documentation was used as a reference to create and verify this module.
 
-Changelog
-=========
+## Changelog
+
+2.0.0
+
+* Adding support for DSMR2.2 Smart Meters (tested with Kamstrup 162 model)
+* Removing serial port auto discovery functionality since it causes issues on many devices, resulting in the need to change the initialisation parameters of this model and therefore a major version bump
+* Updating "node-serialport" and "jasmine" dependencies to latest version
+* Applying ES6 standards to code
+* Improved accuracy of parsing messages by fixing assumption that header is always followed by an empty line, which is not the case for many types of smart meters
+
 1.5.1
-- Small fix for bug that broke the emulator since last version
+
+* Small fix for bug that broke the emulator since last version
 
 1.5.0
-- Serial port auto discovery function now also tries different configurations to allow to automatically connect to any DSMR 4+ Smart Meter
-- Allow forcing both a specific port and configuration (baudrate, parity, databits and stopbits) - Note that the "port" parameter is replaced, which is not backwards compatible
-- Removing the "crash on purpose" when a smart meter could not be found
-- Improving debug logging for better traceability of issues
-- Upgrading "node-serialport" dependency to latest version for improved stability
-- Applying ES6 standards to code
+
+* Serial port auto discovery function now also tries different configurations to allow to automatically connect to any DSMR 4+ Smart Meter
+* Allow forcing both a specific port and configuration (baudrate, parity, databits and stopbits) - Note that the "port" parameter is replaced, which is not backwards compatible
+* Removing the "crash on purpose" when a smart meter could not be found
+* Improving debug logging for better traceability of issues
+* Upgrading "node-serialport" dependency to latest version for improved stability
+* Applying ES6 standards to code
 
 1.4.1
-- Minor bug fix on incorrectly returning the LongPowerFailureLog object
+
+* Minor bug fix on incorrectly returning the LongPowerFailureLog object
 
 1.4.0
-- Exposing and calculating the datetime of the start of a LongPowerFailure
-- Added the 'reading-raw' event to retrieve the raw data (as a string) that was retrieved from the Smart Meter
+
+* Exposing and calculating the datetime of the start of a LongPowerFailure
+* Added the 'reading-raw' event to retrieve the raw data (as a string) that was retrieved from the Smart Meter
 
 1.3.1
-- Added option to control the interval of the emulator mode via an option parameter
+
+* Added option to control the interval of the emulator mode via an option parameter
 
 1.3.0
-- Added emulator mode for development purposes
-- Extended example with all possible option parameters
+
+* Added emulator mode for development purposes
+* Extended example with all possible option parameters
 
 1.2.0
-- Upgraded serialport to 4.0.7
-- Serial port is now automatically locked preventing other processes from opening it
-- Added 'connected' event
-- Exposed used serial port name via getSerialPort()
+
+* Upgraded serialport to 4.0.7
+* Serial port is now automatically locked preventing other processes from opening it
+* Added 'connected' event
+* Exposed used serial port name via getSerialPort()
 
 1.1.1
-- Minor bug fix
+
+* Minor bug fix
 
 1.1.0
-- Added option to force a specific port
-- Log more debugging information
+
+* Added option to force a specific port
+* Log more debugging information
 
 1.0.1
-- Updated readme
+
+* Updated readme
 
 1.0.0
-- Initial version with full DSMR 4.0 specification implemented
+
+* Initial version with full DSMR 4.0 specification implemented

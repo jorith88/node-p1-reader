@@ -1,19 +1,16 @@
-var P1Reader = require('../main');
-var fs = require('fs');
+const P1Reader = require('../main');
+const fs = require('fs');
 
-var config = {};
+let config = {
+    port: '/dev/ttyUSB0',
+    baudRate: 9600,
+    parity: "even",
+    dataBits: 7,
+    stopBits: 1
+};
 
 // Enable Debug Mode by uncommenting the line below
 config.debug = true;
-
-// Force a specific serial port configuration (instead of auto discovery) by uncommenting the lines below
-// config.serialPort = {
-//     "port": '/dev/tty-usbserial1'
-//     "baudRate": 115200,
-//     "parity": "even",
-//     "dataBits": 7,
-//     "stopBits": 1
-// };
 
 // Enable Emulator Mode by uncommenting the line below
 // config.emulator = true;
@@ -28,19 +25,17 @@ config.debug = true;
 //     intervalGas: 3 // Must be larger than 'interval'
 // };
 
-var p1Reader = new P1Reader(config);
+const p1Reader = new P1Reader(config);
 
-p1Reader.on('connected', portConfig => {
-    console.log('Connection with the Smart Meter has been established on port: ' + portConfig.port
-        + ' (BaudRate: ' + portConfig.baudRate + ', Parity: ' + portConfig.parity + ', Databits: '
-        + portConfig.dataBits + 'Stopbits: ' + portConfig.stopBits + ')');
+p1Reader.on('connected', () => {
+    console.log('Connection with the Smart Meter has been established!');
 });
 
 p1Reader.on('reading', data => {
     console.log('Reading received: currently consuming ' + data.electricity.received.actual.reading + data.electricity.received.actual.unit);
 
     // Write electricity totals and actual value to CSV
-    var csvOutput = '' +
+    const csvOutput = '' +
         data.timestamp + ';' +
         data.electricity.received.tariff1.reading + ';' +
         data.electricity.received.tariff2.reading + ';' +

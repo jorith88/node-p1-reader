@@ -12,9 +12,12 @@
   "dependencies": {
     "crc": "^3.5.0",
     "moment": "^2.22.2",
-    "serialport": "6.2.2"
+    "serialport": "7.1.5"
   },
   "devDependencies": {
-    "jasmine": "^2.5.3"
+    "jasmine": "3.4.0"
+  },
+  "scripts": {
+    "test": "jasmine"
   }
 }
